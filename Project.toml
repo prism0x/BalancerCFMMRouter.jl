@@ -1,0 +1,9 @@
+name = "BalancerCFMMRouter"
+uuid = "b5e29929-eb45-4407-ab05-a3f94f71a44c"
+authors = ["prism0x <mathblocksio@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
+CFMMRouter = "591468fd-1d79-403f-bb2b-3ef7f4d90130"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
