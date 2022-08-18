@@ -3,6 +3,16 @@ using JSON
 using CFMMRouter
 using LinearAlgebra
 
+@enum swapType begin
+    SwapExactIn = 1
+    SwapExactOut = 2
+end
+
+struct TokenData
+    index::UInt
+    decimals::UInt
+end
+
 function main(args)
 
     # initialize the settings (the description is for the help screen)
@@ -34,59 +44,102 @@ function main(args)
     end
 
     poolsContent = read(open(parsed_args["pools"], "r"), String)
+
+    if parsed_args["type"] == "SwapExactIn"
+        type = SwapExactIn
+    elseif parsed_args["type"] == "SwapExactOut"
+        type = SwapExactOut
+    else
+        throw(ErrorException("Unknown swap type: " * parsed_args["type"]))
+    end
+
+    try
+        quantity = parse(BigInt, parsed_args["quantity"])
+    catch
+        throw(ErrorException("Token amount not formatted properly: " * parsed_args["quantity"]))
+    end
+
+    sorRoute(
+        poolsContent,
+        parsed_args["tokenIn"],
+        parsed_args["tokenIn"],
+        parse(BigInt, parsed_args["quantity"]),
+        type
+    )
+end
+
+function sorRoute(poolsContent::String, tokenIn::String, tokenOut::String, quantity::BigInt, type::swapType)
+
+    if type != SwapExactIn
+        throw(ErrorException("Only SwapExactIn is supported yet."))
+    end
+
     poolsData = JSON.parse(poolsContent)
     # println(poolsData[1])
 
     poolArray = []
     @assert isa(poolsData, Array{Any}) # Check that JSON data is an array of pools
 
-    tokenIndices = getTokenIndices(poolsData)
-    n_tokens = length(tokenIndices)
-    println(tokenIndices)
+    tokenDataDict = getTokenDataDict(poolsData)
+    n_tokens = length(tokenDataDict)
 
     pools = Vector{CFMM{Float64}}()
     for p in poolsData
-        pool = createPool(p, tokenIndices)
+        pool = createPool(p, tokenDataDict)
         push!(pools, pool)
     end
+
+    tokenInData = tokenDataDict[tokenIn]
+    tokenOutData = tokenDataDict[tokenOut]
+
+    inputBasket = zeros(Float64, n_tokens)
+    inputBasket[tokenInData.index] = quantity / 10^(tokenInData.decimals)
+    # println("ASDASDASDAS", inputBasket)
 
     # Build a routing problem with unit price vector
     prices = ones(n_tokens)
     router = Router(
-        LinearNonnegative(prices),
+        # LinearNonnegative(prices),
+        BasketLiquidation(tokenOutData.index, inputBasket),
         pools,
-        2,
+        n_tokens,
     )
 
     ## Optimize!
     route!(router)
 
-    ## Print results
+    # ## Print results
+    # Ψ = round.(Int, netflows(router))
+    # println("Net trade: $Ψ")
+    # println("Profit: $(dot(prices, Ψ))")
+
     Ψ = round.(Int, netflows(router))
+    println("Netflows: $(netflows(router))")
+    println("Input Basket: $(round.(Int, inputBasket))")
     println("Net trade: $Ψ")
-    println("Profit: $(dot(prices, Ψ))")
+    println("Amount recieved: $(Ψ[tokenOutData.index])")
 
 end
 
-function getTokenIndices(poolsData)
+function getTokenDataDict(poolsData)
     # Returns Dict(tokenAddress => tokenIndex)
 
-    tokenIndices = Dict{String, Int}()
+    tokenDataDict = Dict{String,TokenData}()
     currentIdx = 1
 
     for poolData in poolsData
-        for tokenData in poolData["tokens"]
-            if !haskey(tokenIndices, tokenData["address"])
-                tokenIndices[tokenData["address"]] = currentIdx
+        for token in poolData["tokens"]
+            if !haskey(tokenDataDict, token["address"])
+                tokenDataDict[token["address"]] = TokenData(currentIdx, token["decimals"])
                 currentIdx += 1
             end
         end
     end
 
-    return tokenIndices
+    return tokenDataDict
 end
 
-function createPool(poolData, tokenIndices) :: CFMM{Float64}
+function createPool(poolData, tokenDataDict)::CFMM{Float64}
     poolType = poolData["poolType"]
 
     for tokenData in poolData["tokens"]
@@ -108,7 +161,7 @@ function createPool(poolData, tokenIndices) :: CFMM{Float64}
         for tokenData in poolData["tokens"]
             push!(weights, parse(Float64, tokenData["weight"]))
             push!(balances, parse(Float64, tokenData["balance"]))
-            push!(indices, tokenIndices[tokenData["address"]])
+            push!(indices, tokenDataDict[tokenData["address"]].index)
         end
 
         # println(indices, weights, balances)
