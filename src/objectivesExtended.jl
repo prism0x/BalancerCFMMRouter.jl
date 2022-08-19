@@ -1,84 +1,3 @@
-# using CFMMRouter
-
-# export SwapObjective
-
-# @doc raw"""
-#     f(obj::Objective, v)
-
-# Evaluates the conjugate of the utility function of `objective` at `v`.
-# Specifically,
-# ```math
-#     f(\nu) = \sup_\Psi \left(U(\Psi) - \nu^T \Psi \right).
-# ```
-# """
-# function f end
-
-# @doc raw"""
-#     grad!(g, obj::Objective, v)
-
-# Computes the gradient of [`f(obj, v)`](@ref) at v.
-# """
-# function grad! end
-
-# @doc raw"""
-#     lower_limit(obj)
-
-# Componentwise lower bound on argument `v` for objective [`f`](@ref).
-# Returns a vector with length `length(v)` (number of tokens).
-# """
-# function lower_limit end
-
-# @doc raw"""
-#     upper_limit(obj)
-
-# Componentwise upper bound on argument `v` for objective [`f`](@ref).
-# Returns a vector with length `length(v)` (number of tokens).
-# """
-# function upper_limit end
-
-# ----- Objective definitions below
-
-# @doc raw"""
-#     LinearNonnegative(c)
-
-# Linear objective for the routing problem,
-# ```math
-#     U(\Psi) = c^T\Psi - \mathbf{I}(\Psi \geq 0),
-# ```
-# where `c` is a positive price vector.
-# """
-# struct LinearNonnegative{T} <: Objective
-#     c::AbstractVector{T}
-#     function LinearNonnegative(c::Vector{T}) where {T <: AbstractFloat}
-#         all(c .> 0) || throw(ArgumentError("all elements must be strictly positive"))
-#         return new{T}(
-#             c,
-#         )
-#     end
-# end
-# LinearNonnegative(c::Vector{T}) where {T <: Real} = LinearNonnegative(Float64.(c))
-
-# function f(obj::LinearNonnegative{T}, v) where {T}
-#     if all(obj.c .<= v)
-#         return zero(T)
-#     end
-#     return convert(T, Inf)
-# end
-
-# function grad!(g, obj::LinearNonnegative{T}, v) where {T}
-#     if all(obj.c .<= v)
-#         g .= zero(T)
-#     else
-#         g .= convert(T, Inf)
-#     end
-#     return nothing
-# end
-
-# @inline lower_limit(o::LinearNonnegative{T}) where {T} = o.c .+ 1e-8
-# @inline upper_limit(o::LinearNonnegative{T}) where {T} = convert(T, Inf) .+ zero(o.c)
-
-
-
 @doc raw"""
     SwapObjective(i, Δin)
 
@@ -125,4 +44,9 @@ end
     ret[o.i] = one(T) + eps()
     return ret
 end
-@inline upper_limit(o::SwapObjective{T}) where {T} = convert(T, Inf) .+ zero(o.Δin)
+
+@inline function upper_limit(o::SwapObjective{T}) where {T}
+    ret = o.Δin
+    ret[o.i] = convert(T, Inf)
+    return ret
+end
