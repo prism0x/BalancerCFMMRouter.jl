@@ -1,9 +1,12 @@
 using ArgParse
 using JSON
-using CFMMRouter
-using LinearAlgebra
+# using CFMMRouter
+include("CFMMRouterExtended.jl")
+# using LinearAlgebra
 
-include("objective.jl")
+# println(pathof(CFMMRouter))
+# exit()
+# include("objective.jl")
 
 @enum swapType begin
     SwapExactIn = 1
@@ -99,8 +102,8 @@ function sorRoute(poolsContent::String, tokenIn::String, tokenOut::String, quant
     # Build a routing problem with unit price vector
     router = Router(
         # LinearNonnegative(prices),
-        BasketLiquidation(tokenOutData.index, inputBasket),
-        # SwapObjective(tokenOutData.index, inputBasket),
+        # BasketLiquidation(tokenOutData.index, inputBasket),
+        SwapObjective(tokenOutData.index, inputBasket),
         pools,
         n_tokens,
     )
