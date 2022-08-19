@@ -3,6 +3,8 @@ using JSON
 using CFMMRouter
 using LinearAlgebra
 
+include("objective.jl")
+
 @enum swapType begin
     SwapExactIn = 1
     SwapExactOut = 2
@@ -62,7 +64,7 @@ function main(args)
     sorRoute(
         poolsContent,
         parsed_args["tokenIn"],
-        parsed_args["tokenIn"],
+        parsed_args["tokenOut"],
         parse(BigInt, parsed_args["quantity"]),
         type
     )
@@ -75,7 +77,6 @@ function sorRoute(poolsContent::String, tokenIn::String, tokenOut::String, quant
     end
 
     poolsData = JSON.parse(poolsContent)
-    # println(poolsData[1])
 
     poolArray = []
     @assert isa(poolsData, Array{Any}) # Check that JSON data is an array of pools
@@ -94,13 +95,12 @@ function sorRoute(poolsContent::String, tokenIn::String, tokenOut::String, quant
 
     inputBasket = zeros(Float64, n_tokens)
     inputBasket[tokenInData.index] = quantity / 10^(tokenInData.decimals)
-    # println("ASDASDASDAS", inputBasket)
 
     # Build a routing problem with unit price vector
-    prices = ones(n_tokens)
     router = Router(
         # LinearNonnegative(prices),
         BasketLiquidation(tokenOutData.index, inputBasket),
+        # SwapObjective(tokenOutData.index, inputBasket),
         pools,
         n_tokens,
     )
@@ -113,9 +113,8 @@ function sorRoute(poolsContent::String, tokenIn::String, tokenOut::String, quant
     # println("Net trade: $Ψ")
     # println("Profit: $(dot(prices, Ψ))")
 
-    Ψ = round.(Int, netflows(router))
-    println("Netflows: $(netflows(router))")
-    println("Input Basket: $(round.(Int, inputBasket))")
+    Ψ = netflows(router)
+    println("Input Basket: $inputBasket")
     println("Net trade: $Ψ")
     println("Amount recieved: $(Ψ[tokenOutData.index])")
 
