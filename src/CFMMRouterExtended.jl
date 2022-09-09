@@ -10,6 +10,7 @@ CFMMRouterDir = dirname(pathof(CFMMRouter))
 
 include(CFMMRouterDir * "/utils.jl")
 include(CFMMRouterDir * "/cfmms.jl")
+include("cfmmsExtended.jl")
 include(CFMMRouterDir * "/objectives.jl")
 include("objectivesExtended.jl")
 include(CFMMRouterDir * "/router.jl")

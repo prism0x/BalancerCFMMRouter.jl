@@ -42,11 +42,14 @@ end
     ret = Vector{T}(undef, length(o.Δin))
     fill!(ret, eps())
     ret[o.i] = one(T) + eps()
+    println("Lower_bound ", ret)
     return ret
 end
 
-@inline function upper_limit(o::SwapObjective{T}) where {T}
-    ret = o.Δin
-    ret[o.i] = convert(T, Inf)
-    return ret
-end
+@inline upper_limit(o::SwapObjective{T}) where {T} = convert(T, Inf) .+ zero(o.Δin)
+
+# @inline function upper_limit(o::SwapObjective{T}) where {T}
+#     ret = o.Δin
+#     ret[o.i] = convert(T, Inf)
+#     return ret
+# end

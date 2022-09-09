@@ -99,17 +99,19 @@ function sorRoute(poolsContent::String, tokenIn::String, tokenOut::String, quant
     inputBasket = zeros(Float64, n_tokens)
     inputBasket[tokenInData.index] = quantity / 10^(tokenInData.decimals)
 
+    obj = SwapObjective(tokenOutData.index, inputBasket)
     # Build a routing problem with unit price vector
     router = Router(
         # LinearNonnegative(prices),
         # BasketLiquidation(tokenOutData.index, inputBasket),
-        SwapObjective(tokenOutData.index, inputBasket),
+        obj,
         pools,
         n_tokens,
     )
 
     ## Optimize!
     route!(router)
+    println("ASDASDASD ", router)
 
     # ## Print results
     # Ψ = round.(Int, netflows(router))
@@ -168,7 +170,7 @@ function createPool(poolData, tokenDataDict)::CFMM{Float64}
 
         # println(indices, weights, balances)
         swapFee = parse(Float64, poolData["swapFee"])
-        return GeometricMeanTwoCoin(balances, weights, 1 - swapFee, indices)
+        return GeometricMeanNCoin(balances, weights, 1 - swapFee, indices)
 
     elseif poolType == "MetaStable"
         throw(ErrorException("Pool type not implemented yet"))
