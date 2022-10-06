@@ -8,6 +8,7 @@ using Printf
 
 CFMMRouterDir = dirname(pathof(CFMMRouter))
 
+include("findArb.jl")
 include(CFMMRouterDir * "/utils.jl")
 include(CFMMRouterDir * "/cfmms.jl")
 include("cfmmsExtended.jl")

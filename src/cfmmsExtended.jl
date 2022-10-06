@@ -71,21 +71,33 @@ function ∇ϕ!(R⁺, cfmm::GeometricMeanNCoin; R=nothing)
     return nothing
 end
 
-@inline geom_arb_δ(m, r1, r2, η, γ) = max((γ * m * η * r1 * r2^η)^(1 / (η + 1)) - r2, 0) / γ
-@inline geom_arb_λ(m, r1, r2, η, γ) = max(r1 - ((r2 * r1^(1 / η)) / (η * γ * m))^(η / (1 + η)), 0)
+# @inline geom_arb_δ(m, r1, r2, η, γ) = max((γ * m * η * r1 * r2^η)^(1 / (η + 1)) - r2, 0) / γ
+# @inline geom_arb_λ(m, r1, r2, η, γ) = max(r1 - ((r2 * r1^(1 / η)) / (η * γ * m))^(η / (1 + η)), 0)
+
+function get_trade_function(cfmm::GeometricMeanNCoin)
+    function f(R_...)
+        return ϕ(cfmm, R=R_)
+    end
+    return f
+end
 
 # Solves the maximum arbitrage problem for the n-coin geometric mean case.
 # Assumes that v > 0 and w > 0.
 function find_arb!(Δ::VT, Λ::VT, cfmm::GeometricMeanNCoin{T}, v::VT) where {T,VT<:AbstractVector{T}}
     R, γ, w = cfmm.R, cfmm.γ, cfmm.w
 
-    η = w[1] / w[2]
+    ϕ_ = get_trade_function(cfmm)
+    Δ_, Λ_ = find_arb_jump(ϕ_, R, v, γ)
 
-    Δ[1] = geom_arb_δ(v[2] / v[1], R[2], R[1], η, γ)
-    Δ[2] = geom_arb_δ(v[1] / v[2], R[1], R[2], 1 / η, γ)
+    Δ .= Δ_
+    Λ .= Λ_
+    # η = w[1] / w[2]
 
-    Λ[1] = geom_arb_λ(v[1] / v[2], R[1], R[2], 1 / η, γ)
-    Λ[2] = geom_arb_λ(v[2] / v[1], R[2], R[1], η, γ)
+    # Δ[1] = geom_arb_δ(v[2] / v[1], R[2], R[1], η, γ)
+    # Δ[2] = geom_arb_δ(v[1] / v[2], R[1], R[2], 1 / η, γ)
+
+    # Λ[1] = geom_arb_λ(v[1] / v[2], R[1], R[2], 1 / η, γ)
+    # Λ[2] = geom_arb_λ(v[2] / v[1], R[2], R[1], η, γ)
     return nothing
 end
 

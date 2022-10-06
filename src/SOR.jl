@@ -111,7 +111,6 @@ function sorRoute(poolsContent::String, tokenIn::String, tokenOut::String, quant
 
     ## Optimize!
     route!(router)
-    println("ASDASDASD ", router)
 
     # ## Print results
     # Ψ = round.(Int, netflows(router))
@@ -154,9 +153,6 @@ function createPool(poolData, tokenDataDict)::CFMM{Float64}
 
 
     if poolType == "Weighted"
-        if length(poolData["tokens"]) > 2
-            throw(ErrorException("Weighted pools with more than two tokens are not supported yet"))
-        end
 
         weights = Vector{Float64}()
         balances = Vector{Float64}()
@@ -170,7 +166,11 @@ function createPool(poolData, tokenDataDict)::CFMM{Float64}
 
         # println(indices, weights, balances)
         swapFee = parse(Float64, poolData["swapFee"])
-        return GeometricMeanNCoin(balances, weights, 1 - swapFee, indices)
+        if length(poolData["tokens"]) == 2
+            return GeometricMeanTwoCoin(balances, weights, 1 - swapFee, indices)
+        elseif length(poolData["tokens"]) > 2
+            return GeometricMeanNCoin(balances, weights, 1 - swapFee, indices)
+        end
 
     elseif poolType == "MetaStable"
         throw(ErrorException("Pool type not implemented yet"))
